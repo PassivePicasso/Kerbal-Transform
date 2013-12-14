@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using System.Collections;
+using System.Collections.Generic;
 using System;
 
 
@@ -12,7 +12,8 @@ public class TransformHandle : MonoBehaviour
 
     public delegate bool CanDrag(Vector3 GizmoPosition, Vector3 DragDeltaDelta);
 
-    public Vector3 moveAxis;
+    public Vector3 MoveAxis;
+    public Vector3 SecondaryMoveAxis;
     public OnReleaseDelegate OnRelease;
     public OnDraggingDelegate OnDragging;
     public CanDrag CanDragPredicate;
@@ -55,18 +56,31 @@ public class TransformHandle : MonoBehaviour
 
             RootWidget.InputCollider.collider.Raycast(Camera.main.ScreenPointToRay(Input.mousePosition), out newHitInfo, 1000.0f);
 
-            Vector3 dragDelta = initialPosition + Vector3.Project(newHitInfo.point - lastClickHitInfo.point, moveAxis);
+            Vector3 dragDelta = initialPosition;
 
-            if (CanDragPredicate == null || CanDragPredicate.Invoke(transform.position, Vector3.Project(newHitInfo.point - lastClickHitInfo.point, moveAxis)))
+            if (MoveAxis.magnitude > 0.000f)
+                MoveOnAxis(initialPosition, newHitInfo.point, MoveAxis);
+
+            if (SecondaryMoveAxis.magnitude > 0.000f)
             {
-                if (snap)
-                    dragDelta = TransformWidget.Snap(dragDelta);
-
-                RootWidget.transform.position = dragDelta;
-
-                if (OnDragging != null)
-                    OnDragging.Invoke();
+                MoveOnAxis(RootWidget.transform.position, newHitInfo.point, SecondaryMoveAxis);
             }
+        }
+    }
+
+    private void MoveOnAxis(Vector3 initialPosition, Vector3 currentPosition, Vector3 moveAxis)
+    {
+        var dragDelta = initialPosition + Vector3.Project(currentPosition - lastClickHitInfo.point, moveAxis);
+
+        if (CanDragPredicate == null || CanDragPredicate.Invoke(transform.position, Vector3.Project(currentPosition - lastClickHitInfo.point, moveAxis)))
+        {
+            if (snap)
+                dragDelta = TransformWidget.Snap(dragDelta);
+
+            RootWidget.transform.position = dragDelta;
+
+            if (OnDragging != null)
+                OnDragging.Invoke();
         }
     }
 }
